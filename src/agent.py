@@ -1,4 +1,7 @@
+import json
 import logging
+from datetime import datetime
+from pathlib import Path
 
 from dotenv import load_dotenv
 from livekit.agents import (
@@ -17,7 +20,7 @@ from livekit.agents import (
 )
 from livekit.agents.llm import function_tool
 from livekit.plugins import cartesia, deepgram, noise_cancellation, openai, silero
-from livekit.plugins.turn_detector.multilingual import MultilingualModel
+from livekit.plugins.turn_detector.english import EnglishModel
 
 logger = logging.getLogger("agent")
 
@@ -61,6 +64,17 @@ async def entrypoint(ctx: JobContext):
         "room": ctx.room.name,
     }
 
+    async def write_transcript():
+        current_date = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = Path(f"transcripts/transcript_{ctx.room.name}_{current_date}.json")
+
+        with open(filename, "w") as f:
+            json.dump(session.history.to_dict(), f, indent=2)
+
+        print(f"Transcript for {ctx.room.name} saved to {filename}")
+
+    ctx.add_shutdown_callback(write_transcript)
+
     # Set up a voice AI pipeline using OpenAI, Cartesia, Deepgram, and the LiveKit turn detector
     session = AgentSession(
         # A Large Language Model (LLM) is your agent's brain, processing user input and generating a response
@@ -74,7 +88,7 @@ async def entrypoint(ctx: JobContext):
         tts=cartesia.TTS(voice="6f84f4b8-58a2-430c-8c79-688dad597532"),
         # VAD and turn detection are used to determine when the user is speaking and when the agent should respond
         # See more at https://docs.livekit.io/agents/build/turns
-        turn_detection=MultilingualModel(),
+        turn_detection=EnglishModel(),
         vad=ctx.proc.userdata["vad"],
         # allow the LLM to generate a response while waiting for the end of turn
         # See more at https://docs.livekit.io/agents/build/audio/#preemptive-generation

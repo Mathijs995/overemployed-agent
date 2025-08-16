@@ -11,7 +11,9 @@ requires-python = ">=3.9"
 dependencies = [
     "livekit-agents[openai,turn-detector,silero,cartesia,deepgram]~=1.2",
     "livekit-plugins-noise-cancellation~=0.2",
+    "pre-commit>=4.3.0",
     "python-dotenv",
+    "torch>=2.8.0",
 ]
 
 [dependency-groups]
