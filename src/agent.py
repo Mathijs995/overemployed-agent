@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -27,13 +28,24 @@ logger = logging.getLogger("agent")
 load_dotenv(".env.local")
 
 
+def load_instructions_from_file(file_path: str) -> str:
+    """Load instructions from a markdown file."""
+    try:
+        with open(file_path, encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        logger.warning(f"Instructions file not found: {file_path}")
+        return "You are a helpful AI assistant."
+    except Exception as e:
+        logger.error(f"Error loading instructions from {file_path}: {e}")
+        return "You are a helpful AI assistant."
+
+
 class Assistant(Agent):
     def __init__(self) -> None:
+        instructions = load_instructions_from_file("dario_amodei_instructions.md")
         super().__init__(
-            instructions="""You are a helpful voice AI assistant.
-            You eagerly assist users with their questions by providing information from your extensive knowledge.
-            Your responses are concise, to the point, and without any complex formatting or punctuation including emojis, asterisks, or other symbols.
-            You are curious, friendly, and have a sense of humor.""",
+            instructions=instructions,
         )
 
     # all functions annotated with @function_tool will be passed to the LLM when this
@@ -85,7 +97,7 @@ async def entrypoint(ctx: JobContext):
         stt=deepgram.STT(model="nova-3", language="multi"),
         # Text-to-speech (TTS) is your agent's voice, turning the LLM's text into speech that the user can hear
         # See all providers at https://docs.livekit.io/agents/integrations/tts/
-        tts=cartesia.TTS(voice="6f84f4b8-58a2-430c-8c79-688dad597532"),
+        tts=cartesia.TTS(voice=os.getenv("CARTESIA_VOICE_ID")),
         # VAD and turn detection are used to determine when the user is speaking and when the agent should respond
         # See more at https://docs.livekit.io/agents/build/turns
         turn_detection=EnglishModel(),
